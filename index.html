@@ -203,7 +203,7 @@ function getFields(){
     ytLink:curTab==="link"?document.getElementById("f_yt").value.trim():curTab==="both"?document.getElementById("f_yt2").value.trim():"",
   };
 }
-function buildPrompt(f,res){
+function buildPromptFor(f,key){
   return`You are a gifted pastor creating discipleship resources. Be theologically rich, pastorally warm, and excellent.
 
 SERMON:
@@ -215,9 +215,9 @@ Date: ${f.date||"recent Sunday"}
 ${f.transcript?"\nCONTENT:\n"+f.transcript.slice(0,7000):""}
 ${f.ytLink?"\nYouTube: "+f.ytLink:""}
 
-Use EXACT ALL-CAPS headers: DEVOTIONALS, INSTAGRAM CAPTIONS, LIFE GROUP QUESTIONS, KEY TAKEAWAYS, PRAYER POINTS, WEEKLY CHALLENGE.
+Generate ONLY the following. Do not include any other section. Do not include a header label — just the content directly:
 
-${res.map(r=>PROMPTS[r]).join("\n\n")}`;
+${PROMPTS[key]}`;
 }
 function parseContent(text,resources){
   const markers={
@@ -236,6 +236,19 @@ function parseContent(text,resources){
   return out;
 }
 
+async function fetchOne(f,key){
+  const resp=await fetch("/api/generate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({messages:[{role:"user",content:buildPromptFor(f,key)}]}),
+  });
+  const data=await resp.json();
+  if(data.error)throw new Error(key+": "+data.error);
+  const text=data.content?.map(b=>b.text||"").join("\n")||"";
+  if(!text)throw new Error(key+": empty response.");
+  return text.trim();
+}
+
 async function doGen(){
   const f=getFields();
   const errEl=document.getElementById("errBox");errEl.style.display="none";
@@ -245,19 +258,16 @@ async function doGen(){
   document.getElementById("formView").style.display="none";
   document.getElementById("loadingView").style.display="block";
   let li=0;document.getElementById("lbar").style.width="5%";
-  lt=setInterval(()=>{li++;if(li<LMSGS.length){document.getElementById("lmsg").textContent=LMSGS[li];document.getElementById("lbar").style.width=(5+li*16)+"%";}},3500);
+  lt=setInterval(()=>{li++;if(li<LMSGS.length){document.getElementById("lmsg").textContent=LMSGS[li];document.getElementById("lbar").style.width=(5+li*16)+"%";}},2500);
 
   try{
-    const resp=await fetch("/api/generate",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({messages:[{role:"user",content:buildPrompt(f,[...selKeys])}]}),
-    });
-    const data=await resp.json();
-    if(data.error)throw new Error(data.error);
-    const text=data.content?.map(b=>b.text||"").join("\n")||"";
-    if(!text)throw new Error("Empty response.");
-    clearInterval(lt);resSel=[...selKeys];resData=parseContent(text,resSel);renderResults(f);
+    const keys=[...selKeys];
+    const results=await Promise.all(keys.map(k=>fetchOne(f,k)));
+    clearInterval(lt);
+    resSel=keys;
+    resData={};
+    keys.forEach((k,i)=>resData[k]=results[i]);
+    renderResults(f);
   }catch(err){
     clearInterval(lt);
     document.getElementById("loadingView").style.display="none";

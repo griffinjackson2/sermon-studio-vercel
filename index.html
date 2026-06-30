@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sermon Content Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#5B3FA8;--brand-light:#f0edfc;--brand-mid:#9880e0;--text:#1a1a1a;--muted:#777;--hint:#aaa;--bg:#f7f6f3;--surface:#fff;--border:#e5e2dd;--border-mid:#d5d2cc;--radius:12px;--rsm:8px;--pill:20px}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px;color:var(--text);text-decoration:none}
+.logo-cross{font-size:16px;color:var(--brand);letter-spacing:2px}
+.key-status{font-size:12px;color:var(--hint);display:flex;align-items:center;gap:6px;cursor:pointer}
+.key-dot{width:7px;height:7px;border-radius:50%;background:#ccc}
+.key-dot.on{background:#22c55e}
+.page{max-width:720px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.key-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;max-width:500px;margin:3rem auto;text-align:center}
+.key-card h2{font-family:'Lora',serif;font-size:20px;font-weight:600;margin-bottom:8px}
+.key-card p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.key-row{display:flex;gap:8px;margin-bottom:10px}
+.key-row input{flex:1;padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--rsm);font-size:13px;font-family:inherit;outline:none;background:#fafaf8}
+.key-row input:focus{border-color:var(--brand)}
+.key-save{padding:9px 16px;background:var(--brand);color:#fff;border:none;border-radius:var(--rsm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+.key-save:hover{background:#4a3290}
+.key-hint{font-size:11px;color:var(--hint)}
+.key-hint a{color:var(--brand)}
+.hero{text-align:center;margin-bottom:2.5rem;padding-top:0.5rem}
+.hero h1{font-family:'Lora',serif;font-size:clamp(20px,4vw,28px);font-weight:600;margin-bottom:8px;letter-spacing:-0.3px}
+.hero p{font-size:14px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:14px}
+.clabel{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--hint);margin-bottom:14px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.field input,.field textarea{padding:9px 12px;border:1px solid var(--border-mid);border-radius:var(--rsm);font-size:14px;font-family:inherit;color:var(--text);background:#fafaf8;outline:none;transition:border-color .15s;width:100%}
+.field input:focus,.field textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(91,63,168,.08)}
+.field textarea{resize:vertical;line-height:1.6;min-height:100px}
+.span2{grid-column:1/-1}
+.tab-row{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.tab{font-size:12px;font-weight:500;padding:5px 14px;border-radius:var(--pill);border:1px solid var(--border-mid);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s}
+.tab.on{background:var(--brand-light);color:var(--brand);border-color:var(--brand-mid)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:12px;font-weight:500;padding:5px 13px;border-radius:var(--pill);border:1px solid var(--border-mid);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:5px}
+.gen-btn{width:100%;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:var(--rsm);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s;margin-top:4px}
+.gen-btn:hover{background:#4a3290}
+.err{background:#fff0f0;border:1px solid #ffcccc;border-radius:var(--rsm);padding:10px 14px;font-size:13px;color:#991a1a;margin-bottom:12px;display:none}
+#loadingView{display:none;text-align:center;padding:5rem 1rem}
+.lcross{font-size:28px;color:var(--brand);letter-spacing:7px;margin-bottom:16px;display:block;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.lbar-wrap{width:220px;height:3px;background:var(--border);border-radius:3px;margin:20px auto 10px;overflow:hidden}
+.lbar{height:100%;background:var(--brand);border-radius:3px;width:5%;transition:width .5s ease}
+#resultsView{display:none}
+.rtop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.rtitle{font-family:'Lora',serif;font-size:22px;font-weight:600;margin-bottom:4px}
+.rmeta{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:12px;color:var(--muted)}
+.anchor{color:var(--brand);font-weight:600}
+.tbtns{display:flex;gap:7px;flex-shrink:0}
+.smb{font-size:12px;padding:5px 13px;border-radius:var(--pill);border:1px solid var(--border-mid);background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit;transition:background .15s}
+.smb:hover{background:var(--bg)}
+.snav{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.npill{font-size:12px;font-weight:500;padding:5px 13px;border-radius:var(--pill);border:1px solid var(--border-mid);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s}
+.rsec{display:none}
+.rsec.on{display:block}
+.sechd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sectitle{font-family:'Lora',serif;font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px}
+.cbtn{font-size:11px;padding:3px 10px;border-radius:var(--pill);border:1px solid var(--border-mid);background:var(--surface);color:var(--hint);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.cbtn:hover{background:var(--bg)}
+.cbtn.done{background:#edfaf4;color:#0f6e56;border-color:#5dcaa5}
+.ritem{border-radius:var(--rsm);padding:13px 14px;margin-bottom:9px;border-left:3px solid #ccc;font-size:13px;line-height:1.78;color:#333;white-space:pre-wrap;position:relative;padding-right:56px}
+.icopy{position:absolute;top:9px;right:10px}
+@media(max-width:540px){.g2{grid-template-columns:1fr}.page{padding:1.5rem 1rem 3rem}.header{padding:0 1rem}}
+</style>
+</head>
+<body>
+<header class="header">
+  <a class="logo" href="#"><span class="logo-cross">✝</span> Sermon Content Studio</a>
+  <span style="font-size:12px;color:var(--hint)">Powered by Claude AI</span>
+</header>
+<main class="page">
+  <div id="formView" style="display:block">
+    <div class="hero">
+      <h1>Turn Sunday's Message Into a<br><em>Week of Discipleship</em></h1>
+      <p>Enter your sermon details and generate devotionals, captions, life group questions, and more.</p>
+    </div>
+    <div class="card">
+      <p class="clabel">Sermon Details</p>
+      <div class="g2">
+        <div class="field"><label>Sermon Title *</label><input id="f_title" placeholder="e.g. The Good Shepherd"></div>
+        <div class="field"><label>Preacher</label><input id="f_preacher" placeholder="e.g. Pastor James Miller"></div>
+        <div class="field"><label>Sermon Series</label><input id="f_series" placeholder="e.g. The Gospel of John"></div>
+        <div class="field"><label>Date</label><input id="f_date" type="date"></div>
+        <div class="field span2"><label>Biblical Anchor Text *</label><input id="f_anchor" placeholder="e.g. John 10:1-18"></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="clabel">Sermon Content</p>
+      <div class="tab-row">
+        <button class="tab on" onclick="swTab('paste',this)">Transcript / Outline</button>
+        <button class="tab" onclick="swTab('link',this)">YouTube Link</button>
+        <button class="tab" onclick="swTab('both',this)">Both</button>
+      </div>
+      <div id="tp_paste">
+        <div class="field"><label>Sermon Transcript or Outline</label>
+          <textarea id="f_transcript" rows="6" placeholder="Paste your full sermon transcript, outline, or notes here..."></textarea>
+        </div>
+      </div>
+      <div id="tp_link" style="display:none">
+        <div class="field"><label>YouTube Video URL</label><input id="f_yt" type="url" placeholder="https://www.youtube.com/watch?v=..."></div>
+        <p style="font-size:11px;color:var(--hint);margin-top:5px">For best results, also paste a transcript.</p>
+      </div>
+      <div id="tp_both" style="display:none">
+        <div class="field" style="margin-bottom:10px"><label>Transcript or Outline</label>
+          <textarea id="f_transcript2" rows="5" placeholder="Paste transcript or outline..."></textarea>
+        </div>
+        <div class="field"><label>YouTube Video URL</label><input id="f_yt2" type="url" placeholder="https://www.youtube.com/watch?v=..."></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="clabel">Resources to Generate</p>
+      <div class="chips" id="chipArea">
+        <button class="chip" data-key="devotionals" data-color="#5B3FA8" data-border="#9880e0" data-bg="#f0edfc">† Daily Devotionals</button>
+        <button class="chip" data-key="social" data-color="#0f6e56" data-border="#1d9e75" data-bg="#edfaf4">◈ Instagram Captions</button>
+        <button class="chip" data-key="lifegroup" data-color="#854f0b" data-border="#ba7517" data-bg="#fffbf0">◆ Life Group Questions</button>
+        <button class="chip" data-key="takeaways" data-color="#0c447c" data-border="#378add" data-bg="#ebf2ff">▸ Key Takeaways</button>
+        <button class="chip" data-key="prayer" data-color="#72243e" data-border="#d4537e" data-bg="#fff0f6">✦ Prayer Points</button>
+        <button class="chip" data-key="challenge" data-color="#27500a" data-border="#639922" data-bg="#eaf3de">▲ Weekly Challenge</button>
+      </div>
+    </div>
+    <div class="err" id="errBox"></div>
+    <button class="gen-btn" onclick="doGen()">Generate Sermon Resources →</button>
+  </div>
+  <div id="loadingView">
+    <span class="lcross">✝</span>
+    <p style="font-size:16px;font-weight:600;margin-bottom:6px">Preparing your sermon resources</p>
+    <p id="lmsg" style="font-size:13px;color:var(--muted)">Reading the Word...</p>
+    <div class="lbar-wrap"><div class="lbar" id="lbar"></div></div>
+    <p style="font-size:11px;color:var(--hint);margin-top:8px">Usually takes 20–40 seconds...</p>
+  </div>
+  <div id="resultsView">
+    <div class="rtop">
+      <div><div class="rtitle" id="r_title"></div><div class="rmeta" id="r_meta"></div></div>
+      <div class="tbtns">
+        <button class="smb" onclick="copyAll(this)">Copy all</button>
+        <button class="smb" onclick="goBack()">← New sermon</button>
+      </div>
+    </div>
+    <div class="snav" id="navArea"></div>
+    <div id="secArea"></div>
+  </div>
+</main>
+<script>
+const SECS=[
+  {key:"devotionals",label:"Daily Devotionals",sym:"†",color:"#5B3FA8",border:"#9880e0",bg:"#f8f6ff"},
+  {key:"social",label:"Instagram Captions",sym:"◈",color:"#0f6e56",border:"#1d9e75",bg:"#f0fdf9"},
+  {key:"lifegroup",label:"Life Group Questions",sym:"◆",color:"#854f0b",border:"#ba7517",bg:"#fffcf5"},
+  {key:"takeaways",label:"Key Takeaways",sym:"▸",color:"#0c447c",border:"#378add",bg:"#f0f6ff"},
+  {key:"prayer",label:"Prayer Points",sym:"✦",color:"#72243e",border:"#d4537e",bg:"#fff5f8"},
+  {key:"challenge",label:"Weekly Challenge",sym:"▲",color:"#27500a",border:"#639922",bg:"#f5fbef"},
+];
+const PROMPTS={
+  devotionals:`DEVOTIONALS\nWrite 6 daily devotionals Monday through Saturday. Each:\n[DAY]: [Title]\nVERSE: [reference]\nREFLECTION: [2-3 warm pastoral paragraphs]\nPRAYER: [3-5 sentence prayer]\n---`,
+  social:`INSTAGRAM CAPTIONS\n10 Instagram captions. Mix one-liners, story hooks, questions, CTAs. Church audience. 3-5 hashtags per post. Number 1-10. Separate with ---`,
+  lifegroup:`LIFE GROUP QUESTIONS\n6-8 questions mixing theological, pastoral, practical. Numbered. Separate with ---`,
+  takeaways:`KEY TAKEAWAYS\n5-8 punchy takeaway sentences. Numbered.`,
+  prayer:`PRAYER POINTS\n6-8 specific prayer points. Numbered.`,
+  challenge:`WEEKLY CHALLENGE\nOne bold practical challenge: title, 2-3 sentence explanation, daily action, reflection question.`,
+};
+const LMSGS=["Reading the Word...","Crafting devotionals...","Writing captions...","Preparing questions...","Gathering prayer points...","Finishing up..."];
+let curTab="paste",selKeys=[],resData={},resSel=[],lt=null;
+
+window.addEventListener("load",()=>{
+  document.querySelectorAll("#chipArea .chip").forEach(c=>{
+    const info=SECS.find(s=>s.key===c.dataset.key);
+    setChip(c,true,info);selKeys.push(info.key);
+    c.addEventListener("click",()=>{
+      const on=c.classList.contains("on");
+      c.classList.toggle("on",!on);setChip(c,!on,info);
+      if(!on){if(!selKeys.includes(info.key))selKeys.push(info.key);}
+      else selKeys=selKeys.filter(k=>k!==info.key);
+    });
+  });
+});
+
+function setChip(c,on,info){
+  c.style.color=on?info.color:"";c.style.borderColor=on?info.border:"";c.style.background=on?info.bg:"";
+  c.classList.toggle("on",on);
+}
+function swTab(t,btn){
+  curTab=t;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("on"));btn.classList.add("on");
+  ["paste","link","both"].forEach(x=>document.getElementById("tp_"+x).style.display=x===t?"block":"none");
+}
+function getFields(){
+  return{
+    title:document.getElementById("f_title").value.trim(),
+    preacher:document.getElementById("f_preacher").value.trim(),
+    series:document.getElementById("f_series").value.trim(),
+    anchor:document.getElementById("f_anchor").value.trim(),
+    date:document.getElementById("f_date").value,
+    transcript:curTab==="paste"?document.getElementById("f_transcript").value.trim():curTab==="both"?document.getElementById("f_transcript2").value.trim():"",
+    ytLink:curTab==="link"?document.getElementById("f_yt").value.trim():curTab==="both"?document.getElementById("f_yt2").value.trim():"",
+  };
+}
+function buildPrompt(f,res){
+  return`You are a gifted pastor creating discipleship resources. Be theologically rich, pastorally warm, and excellent.
+
+SERMON:
+Title: ${f.title}
+Preacher: ${f.preacher||"the pastor"}
+Series: ${f.series||"standalone"}
+Anchor Text: ${f.anchor}
+Date: ${f.date||"recent Sunday"}
+${f.transcript?"\nCONTENT:\n"+f.transcript.slice(0,7000):""}
+${f.ytLink?"\nYouTube: "+f.ytLink:""}
+
+Use EXACT ALL-CAPS headers: DEVOTIONALS, INSTAGRAM CAPTIONS, LIFE GROUP QUESTIONS, KEY TAKEAWAYS, PRAYER POINTS, WEEKLY CHALLENGE.
+
+${res.map(r=>PROMPTS[r]).join("\n\n")}`;
+}
+function parseContent(text,resources){
+  const markers={
+    devotionals:/^DEVOTIONALS?\s*$/im,social:/^INSTAGRAM CAPTIONS?\s*$/im,
+    lifegroup:/^LIFE GROUP QUESTIONS?\s*$/im,takeaways:/^KEY TAKEAWAYS?\s*$/im,
+    prayer:/^PRAYER POINTS?\s*$/im,challenge:/^WEEKLY CHALLENGE\s*$/im,
+  };
+  const found=resources.map(r=>({key:r,m:markers[r]?.exec(text)})).filter(x=>x.m).sort((a,b)=>a.m.index-b.m.index);
+  const out={};
+  found.forEach((item,i)=>{
+    const start=item.m.index+item.m[0].length;
+    const end=i<found.length-1?found[i+1].m.index:text.length;
+    out[item.key]=text.slice(start,end).trim();
+  });
+  if(!Object.keys(out).length&&resources.length)out[resources[0]]=text;
+  return out;
+}
+
+async function doGen(){
+  const f=getFields();
+  const errEl=document.getElementById("errBox");errEl.style.display="none";
+  if(!f.title||!f.anchor){errEl.textContent="Please fill in Sermon Title and Biblical Anchor Text.";errEl.style.display="block";return;}
+  if(!selKeys.length){errEl.textContent="Please select at least one resource type.";errEl.style.display="block";return;}
+
+  document.getElementById("formView").style.display="none";
+  document.getElementById("loadingView").style.display="block";
+  let li=0;document.getElementById("lbar").style.width="5%";
+  lt=setInterval(()=>{li++;if(li<LMSGS.length){document.getElementById("lmsg").textContent=LMSGS[li];document.getElementById("lbar").style.width=(5+li*16)+"%";}},3500);
+
+  try{
+    const resp=await fetch("/api/generate",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({messages:[{role:"user",content:buildPrompt(f,[...selKeys])}]}),
+    });
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error);
+    const text=data.content?.map(b=>b.text||"").join("\n")||"";
+    if(!text)throw new Error("Empty response.");
+    clearInterval(lt);resSel=[...selKeys];resData=parseContent(text,resSel);renderResults(f);
+  }catch(err){
+    clearInterval(lt);
+    document.getElementById("loadingView").style.display="none";
+    document.getElementById("formView").style.display="block";
+    errEl.textContent="Error: "+err.message;errEl.style.display="block";
+  }
+}
+
+function renderResults(f){
+  document.getElementById("loadingView").style.display="none";
+  document.getElementById("resultsView").style.display="block";
+  document.getElementById("r_title").textContent=f.title;
+  const mp=[];
+  if(f.preacher)mp.push(`<span>${esc(f.preacher)}</span>`);
+  if(f.series)mp.push(`<span>${esc(f.series)}</span>`);
+  if(f.anchor)mp.push(`<span class="anchor">${esc(f.anchor)}</span>`);
+  if(f.date)mp.push(`<span>${new Date(f.date+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</span>`);
+  document.getElementById("r_meta").innerHTML=mp.join("");
+  const nav=document.getElementById("navArea"),secA=document.getElementById("secArea");
+  nav.innerHTML="";secA.innerHTML="";
+  const avail=SECS.filter(s=>resSel.includes(s.key)&&resData[s.key]);
+  avail.forEach((s,i)=>{
+    const pill=document.createElement("button");
+    pill.className="npill"+(i===0?" on":"");pill.dataset.key=s.key;
+    if(i===0)pill.style.cssText=`color:${s.color};border-color:${s.border};background:${s.bg};font-weight:600`;
+    pill.innerHTML=`<span>${s.sym}</span>${s.label}`;
+    pill.onclick=()=>activeSec(s.key,avail);nav.appendChild(pill);
+    const sec=document.createElement("div");
+    sec.className="rsec"+(i===0?" on":"");sec.id="sec_"+s.key;
+    const items=resData[s.key].split(/\n---\n/).map(x=>x.trim()).filter(Boolean);
+    let html=`<div class="sechd"><div class="sectitle"><span style="color:${s.color}">${s.sym}</span>${s.label}</div><button class="cbtn" data-k="${s.key}">Copy section</button></div>`;
+    if(items.length>1){
+      items.forEach((item,ii)=>{html+=`<div class="ritem" style="background:${s.bg};border-left-color:${s.border}">${esc(item)}<button class="cbtn icopy" data-k="${s.key}" data-i="${ii}">Copy</button></div>`;});
+    }else{
+      html+=`<div class="ritem" style="background:${s.bg};border-left-color:${s.border}">${esc(resData[s.key])}</div>`;
+    }
+    sec.innerHTML=html;
+    sec.querySelectorAll(".cbtn").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        const k=btn.dataset.k,idx=btn.dataset.i;
+        let txt=resData[k]||"";
+        if(idx!==undefined){const arr=resData[k].split(/\n---\n/).map(x=>x.trim()).filter(Boolean);txt=arr[parseInt(idx)]||txt;}
+        navigator.clipboard.writeText(txt);
+        const orig=btn.textContent;btn.textContent="Copied!";btn.classList.add("done");
+        setTimeout(()=>{btn.textContent=orig;btn.classList.remove("done");},2000);
+      });
+    });
+    secA.appendChild(sec);
+  });
+}
+function activeSec(key,avail){
+  document.querySelectorAll(".rsec").forEach(s=>s.classList.remove("on"));
+  const t=document.getElementById("sec_"+key);if(t)t.classList.add("on");
+  document.querySelectorAll(".npill").forEach(p=>{
+    const s=avail.find(x=>x.key===p.dataset.key);if(!s)return;
+    if(s.key===key){p.classList.add("on");p.style.cssText=`color:${s.color};border-color:${s.border};background:${s.bg};font-weight:600`;}
+    else{p.classList.remove("on");p.style.cssText="";}
+  });
+}
+function copyAll(btn){
+  const all=resSel.filter(r=>resData[r]).map(r=>{const s=SECS.find(x=>x.key===r);return`=== ${s.label.toUpperCase()} ===\n\n${resData[r]}`;}).join("\n\n\n");
+  navigator.clipboard.writeText(all);btn.textContent="Copied!";setTimeout(()=>btn.textContent="Copy all",2000);
+}
+function goBack(){document.getElementById("resultsView").style.display="none";document.getElementById("formView").style.display="block";}
+function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+</script>
+</body>
+</html>

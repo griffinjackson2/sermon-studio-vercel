@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 4000,
         messages: messages,
       }),
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     if (!response.ok || data.error) {
       return res.status(response.status || 500).json({
-        error: data.error?.message || JSON.stringify(data),
+        error: JSON.stringify(data),
       });
     }
 

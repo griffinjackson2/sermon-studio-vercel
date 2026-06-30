@@ -12,6 +12,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
 .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px;color:var(--text);text-decoration:none}
 .logo-cross{font-size:16px;color:var(--brand);letter-spacing:2px}
+.archive-link{font-size:13px;font-weight:500;padding:6px 14px;border-radius:20px;border:1px solid var(--border-mid);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s}
+.archive-link:hover{background:var(--brand-light);color:var(--brand);border-color:var(--brand-mid)}
 .key-status{font-size:12px;color:var(--hint);display:flex;align-items:center;gap:6px;cursor:pointer}
 .key-dot{width:7px;height:7px;border-radius:50%;background:#ccc}
 .key-dot.on{background:#22c55e}
@@ -71,14 +73,46 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .ritem{border-radius:var(--rsm);padding:13px 14px;margin-bottom:9px;border-left:3px solid #ccc;font-size:13px;line-height:1.78;color:#333;white-space:pre-wrap;position:relative;padding-right:56px}
 .icopy{position:absolute;top:9px;right:10px}
 @media(max-width:540px){.g2{grid-template-columns:1fr}.page{padding:1.5rem 1rem 3rem}.header{padding:0 1rem}}
+.arch-group-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.arch-group-title:first-child{margin-top:0}
+.arch-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.arch-card:hover{border-color:var(--brand-mid);box-shadow:0 2px 8px rgba(91,63,168,0.08)}
+.arch-card-title{font-family:'Lora',serif;font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px}
+.arch-card-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 10px}
+.arch-card-meta .anchor{color:var(--brand);font-weight:600}
+.arch-card-date{font-size:11px;color:var(--hint);flex-shrink:0;white-space:nowrap}
+.arch-empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.arch-delete{font-size:11px;color:var(--hint);background:none;border:none;cursor:pointer;padding:4px 8px;flex-shrink:0}
+.arch-delete:hover{color:#c0392b}
 </style>
 </head>
 <body>
 <header class="header">
   <a class="logo" href="#"><span class="logo-cross">✝</span> Sermon Content Studio</a>
+  <button class="archive-link" onclick="showArchive()">📚 Archive</button>
   <span style="font-size:12px;color:var(--hint)">Powered by Claude AI</span>
 </header>
 <main class="page">
+  <div id="archiveView" style="display:none">
+    <div class="hero">
+      <h1>Sermon Archive</h1>
+      <p>Every sermon you've generated, all in one place</p>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="arch_search" placeholder="Search by title, verse, or keyword..." style="flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--border-mid);border-radius:8px;font-size:14px;font-family:inherit;background:#fafaf8;outline:none" oninput="renderArchive()">
+        <select id="arch_groupBy" onchange="renderArchive()" style="padding:9px 12px;border:1px solid var(--border-mid);border-radius:8px;font-size:13px;font-family:inherit;background:#fafaf8;outline:none">
+          <option value="none">No grouping</option>
+          <option value="series">Group by Series</option>
+          <option value="preacher">Group by Preacher</option>
+          <option value="book">Group by Bible Book</option>
+        </select>
+        <button class="smb" onclick="goBack()">← New sermon</button>
+      </div>
+    </div>
+    <div id="archiveList"></div>
+  </div>
+
   <div id="formView" style="display:block">
     <div class="hero">
       <h1>Turn Sunday's Message Into a<br><em>Week of Discipleship</em></h1>
@@ -160,7 +194,7 @@ const SECS=[
   {key:"challenge",label:"Weekly Challenge",sym:"▲",color:"#27500a",border:"#639922",bg:"#f5fbef"},
 ];
 const PROMPTS={
-  devotionals:`DEVOTIONALS\nWrite 6 daily devotionals Monday through Saturday. Each:\n[DAY]: [Title]\nVERSE: [reference]\nREFLECTION: [2 warm pastoral paragraphs]\nPRAYER: [2-3 sentence prayer]\n---`,
+  devotionals:`DEVOTIONALS\nWrite 6 daily devotionals Monday through Saturday. Keep each concise and punchy. Each:\n[DAY]: [Title]\nVERSE: [reference]\nREFLECTION: [1 short paragraph, 4-6 sentences, warm and pastoral]\nPRAYER: [2-3 sentence prayer]\n---`,
   social:`INSTAGRAM CAPTIONS\n10 Instagram captions. Mix one-liners, story hooks, questions, CTAs. Church audience. 3-5 hashtags per post. Number 1-10. Separate with ---`,
   lifegroup:`LIFE GROUP QUESTIONS\n6-8 questions mixing theological, pastoral, practical. Numbered. Separate with ---`,
   takeaways:`KEY TAKEAWAYS\n5-8 punchy takeaway sentences. Numbered.`,
@@ -169,6 +203,104 @@ const PROMPTS={
 };
 const LMSGS=["Reading the Word...","Crafting devotionals...","Writing captions...","Preparing questions...","Gathering prayer points...","Finishing up..."];
 let curTab="paste",selKeys=[],resData={},resSel=[],lt=null;
+
+// ── ARCHIVE ──
+const ARCH_KEY="scs_archive";
+const BIBLE_BOOKS=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalm","Psalms","Proverbs","Ecclesiastes","Song of Songs","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
+
+function detectBook(anchor){
+  if(!anchor) return "Other";
+  const found=BIBLE_BOOKS.find(b=>anchor.toLowerCase().startsWith(b.toLowerCase()));
+  return found || "Other";
+}
+
+function getArchive(){
+  try{return JSON.parse(localStorage.getItem(ARCH_KEY)||"[]");}catch(e){return [];}
+}
+function saveToArchive(f,data,sel){
+  const archive=getArchive();
+  const entry={
+    id:Date.now().toString(),
+    title:f.title,preacher:f.preacher,series:f.series,anchor:f.anchor,date:f.date,
+    book:detectBook(f.anchor),
+    savedAt:new Date().toISOString(),
+    resData:data,resSel:sel,
+  };
+  archive.unshift(entry);
+  localStorage.setItem(ARCH_KEY,JSON.stringify(archive));
+}
+function deleteFromArchive(id,ev){
+  if(ev)ev.stopPropagation();
+  if(!confirm("Delete this sermon from your archive?"))return;
+  const archive=getArchive().filter(e=>e.id!==id);
+  localStorage.setItem(ARCH_KEY,JSON.stringify(archive));
+  renderArchive();
+}
+function loadFromArchive(id){
+  const entry=getArchive().find(e=>e.id===id);
+  if(!entry)return;
+  resSel=entry.resSel;resData=entry.resData;
+  document.getElementById("archiveView").style.display="none";
+  renderResults({title:entry.title,preacher:entry.preacher,series:entry.series,anchor:entry.anchor,date:entry.date});
+}
+function showArchive(){
+  ["formView","resultsView","loadingView"].forEach(id=>document.getElementById(id).style.display="none");
+  document.getElementById("archiveView").style.display="block";
+  renderArchive();
+}
+function renderArchive(){
+  const archive=getArchive();
+  const search=(document.getElementById("arch_search")?.value||"").toLowerCase();
+  const groupBy=document.getElementById("arch_groupBy")?.value||"none";
+  const list=document.getElementById("archiveList");
+
+  let filtered=archive.filter(e=>{
+    if(!search)return true;
+    return (e.title||"").toLowerCase().includes(search)
+      ||(e.anchor||"").toLowerCase().includes(search)
+      ||(e.preacher||"").toLowerCase().includes(search)
+      ||(e.series||"").toLowerCase().includes(search);
+  });
+
+  if(!filtered.length){
+    list.innerHTML=`<div class="arch-empty">${archive.length?"No sermons match your search.":"No sermons saved yet. Generate your first one to start building your archive!"}</div>`;
+    return;
+  }
+
+  function cardHtml(e){
+    const mp=[];
+    if(e.preacher)mp.push(esc(e.preacher));
+    if(e.series)mp.push(esc(e.series));
+    if(e.anchor)mp.push(`<span class="anchor">${esc(e.anchor)}</span>`);
+    const dateStr=e.date?new Date(e.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"";
+    return `<div class="arch-card" onclick="loadFromArchive('${e.id}')">
+      <div>
+        <div class="arch-card-title">${esc(e.title)}</div>
+        <div class="arch-card-meta">${mp.join(" · ")}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="arch-card-date">${dateStr}</div>
+        <button class="arch-delete" onclick="deleteFromArchive('${e.id}',event)">Delete</button>
+      </div>
+    </div>`;
+  }
+
+  if(groupBy==="none"){
+    list.innerHTML=filtered.map(cardHtml).join("");
+    return;
+  }
+
+  const groupKey=groupBy==="book"?"book":groupBy;
+  const groups={};
+  filtered.forEach(e=>{
+    const k=e[groupKey]||"Other";
+    if(!groups[k])groups[k]=[];
+    groups[k].push(e);
+  });
+  const sortedKeys=Object.keys(groups).sort();
+  list.innerHTML=sortedKeys.map(k=>`<div class="arch-group-title">${esc(k)} (${groups[k].length})</div>${groups[k].map(cardHtml).join("")}`).join("");
+}
+
 
 window.addEventListener("load",()=>{
   document.querySelectorAll("#chipArea .chip").forEach(c=>{
@@ -267,6 +399,7 @@ async function doGen(){
     resSel=keys;
     resData={};
     keys.forEach((k,i)=>resData[k]=results[i]);
+    saveToArchive(f,resData,resSel);
     renderResults(f);
   }catch(err){
     clearInterval(lt);
@@ -331,7 +464,7 @@ function copyAll(btn){
   const all=resSel.filter(r=>resData[r]).map(r=>{const s=SECS.find(x=>x.key===r);return`=== ${s.label.toUpperCase()} ===\n\n${resData[r]}`;}).join("\n\n\n");
   navigator.clipboard.writeText(all);btn.textContent="Copied!";setTimeout(()=>btn.textContent="Copy all",2000);
 }
-function goBack(){document.getElementById("resultsView").style.display="none";document.getElementById("formView").style.display="block";}
+function goBack(){document.getElementById("resultsView").style.display="none";document.getElementById("archiveView").style.display="none";document.getElementById("formView").style.display="block";}
 function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 </script>
 </body>
